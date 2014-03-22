@@ -35,7 +35,8 @@ class SodokuGrid:
         self.Cells = []
         for x in range(0,81):
             Cell = SodokuCell()
-            self.Cells.append(Cell)  
+            self.Cells.append(Cell)
+        groups = self.__define_groups__()  
     
     def print_Grid(self):
         """print Sodoku Grid"""
