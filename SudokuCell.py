@@ -4,7 +4,7 @@ Created on 21.03.2014
 @author: vls
 '''
 import random
-
+import copy
 
 class SudokuCell:
     """Most Basic Sudoku Cell
@@ -13,6 +13,9 @@ class SudokuCell:
     """
     def __init__(self):
         self.values = {1: True,2:True,3:True,4:True,5:True,6:True,7:True,8:True,9:True}
+    
+    def __eq__(self, other):
+        return self.values == other.values
         
     def check_cell(self):
         """return all values still possible"""
@@ -28,6 +31,9 @@ class SudokuCell:
             if k != val:
                 self.values[k] = False
         self.values[val]=True
+    
+    def reset_cell(self):
+        self.values = {1: True,2:True,3:True,4:True,5:True,6:True,7:True,8:True,9:True}
 
 
 class SudokuGrid:
@@ -36,11 +42,15 @@ class SudokuGrid:
         for x in range(0,81):
             Cell = SudokuCell()
             self.Cells.append(Cell)
-        groups = self.__define_groups__()  
+        self.groups = self.__define_groups__()
     
+    def __eq__(self, other):
+        return self.Cells == other.Cells
+        
     def print_Grid(self):
         """print Sudoku Grid"""
         values=self.__str_fill__()
+        print '-------------------'
         for x in range (0,3):
             print '|'+values[x*9] +' '+ values[x*9+1] +' ' + values [x*9+2] + '|'+values[x*9+3] +' '+ values[x*9+4] +' ' + values [x*9+5] + '|'+values[x*9+6] +' '+ values[x*9+7] +' ' + values [x*9+8] + '|'
         print '*-----*-----*-----*'
@@ -49,42 +59,15 @@ class SudokuGrid:
         print '*-----*-----*-----*'
         for x in range (6,9):
             print '|'+values[x*9] +' '+ values[x*9+1] +' ' + values [x*9+2] + '|'+values[x*9+3] +' '+ values[x*9+4] +' ' + values [x*9+5] + '|'+values[x*9+6] +' '+ values[x*9+7] +' ' + values [x*9+8] + '|'
-
+        print '-------------------'
+        
+        
     def check_gridsolved(self):
         for x in self.Cells:
             if len(x.check_cell())!=1:
                 return False
         return True
-
-    def simple_solver(self):
-        iteration = 0
-        laststate = []
-        while (self.check_gridsolved()==False):
-            if 0!=self.__slv_iterate_truncation__():
-                return 0 #cannot solve
-            if 0!=self.__slv_iterate_singlefind__():
-                return 0 #cannot solve
-            iteration += 1
-            if laststate == self.__str_fill__():
-                print 'no change from last iteration'
-                break
-            if iteration > 100:
-                print 'ERROR too many iterations'
-                break
-            laststate = self.__str_fill__()
-        return iteration
-    
-    def branch_trial(self):
-        iteration = 0
-        self.simple_solver()
-    
-    def __slv_find_firstchoice__(self):
-        min_len = 10
-        for x in self.Cells:
-            if len(x.check_cell())>1:
-               min_len = min(len(x.check_cell()),min_len)
-        return min_len
-    
+   
     def __define_groups__(self):
         """we need to know how the grid is formed"""
         groups=[]
@@ -125,48 +108,6 @@ class SudokuGrid:
             if len(x.check_cell())!=1:
                 rand = random.randint(1,9)
                 x.set_cell(rand)
-
-    def __slv_iterate_truncation__(self):
-        groups = self.__define_groups__()
-        for x in range(0,len(groups)):
-            if 0==self.__slv_truncate_group__(groups[x]):
-                return 0
-        return 1
-    
-    def __slv_iterate_singlefind__(self):
-        groups = self.__define_groups__()
-        for x in range(0,len(groups)):
-            if 0==self.__slv_find_single_num_in_group__(groups[x]):
-                return 0
-        return 1
-        
-    def __slv_truncate_group__(self, group):
-        for x in group:
-            if len(self.Cells[x].check_cell())==0:
-                return 0 #this case should not happen
-            
-            if len(self.Cells[x].check_cell())==1: #if value is known
-                val = self.Cells[x].check_cell()[0]
-                for y in group:
-                    self.Cells[y].values[val]=False #remove from remaining cells in group
-                self.Cells[x].set_cell(val) #need to 'unremove'
-      
-    def __slv_find_single_num_in_group__(self,group):
-        number = {1:False,2:False,3:False,4:False,5:False,6:False,7:False,8:False,9:False}
-        for x in group:             
-            for existing_number in self.Cells[x].check_cell():
-                if number.has_key(existing_number):
-                    if number[existing_number]==False: #there was a bug here index 0 did not count
-                        del number[existing_number]
-                if number.has_key(existing_number):
-                    number[existing_number]=x
-        for k,d in number.items():
-            if d==False:
-                return 0 #return 0 because unsolvable
-        
-        for k,d in number.items():
-            self.Cells[d].set_cell(k)
-        return 1
 
     def __set_example0__(self):
         self.Cells[1].set_cell(7)
@@ -261,36 +202,132 @@ class SudokuGrid:
 
 
 
-class Sudoku_SolverBranch():
+class Sudoku_Solver():
     '''This class is an iterative non-exhaustive search algorithm for the SudokuGrid'''
     def __init__(self):
-        Branch = {} #stores the Branch info
+        self.Branch = {} #stores the Branch info
+        self.inputGrid = SudokuGrid()
+        self.workingGrid = SudokuGrid()
+        self.solved = False
+        self.unsolvable = False
+    
+    def load(self,SudokuGrid):
+        self.inputGrid = copy.deepcopy(SudokuGrid)
+        self.workingGrid = copy.deepcopy(SudokuGrid)
+        
+    def simple_solver(self):
+        iteration = 0
+        laststate = SudokuGrid()
+        while ((laststate == self.workingGrid)==False): #
+            laststate = copy.deepcopy(self.workingGrid) #want to get rid of deepcopy...
+            iteration += 1
+            if 0==self.__slv_iterate_truncation__():
+                #print 'er'
+                return 0 #cannot solve
+            if 0==self.__slv_iterate_singlefind__():
+                #print 'bad eval'
+                return 0 #cannot solve            
+            if iteration > 30:
+                print 'ERROR too many iterations'
+                break
+            
+        return iteration
+    
+    def solve(self): #STILL WANT A BRANCH AND BOUND ALGORITHM!!!!! Not tonight
+        iteration = 0
+        simple_iteration = self.simple_solver()
+        if (simple_iteration)==0:
+            self.unsolvable == True
+        if (self.workingGrid.check_gridsolved()==False): #start branching
+            self.workingGrid.print_Grid()
+            self.Branch.update(self.__slv_find_firstchoice__())
+            self.workingGrid.Cells[Solver.Branch.keys()[-1]].set_cell(Solver.Branch.values()[-1][-1]) #select last item in Branch and set to grid
+            self.workingGrid.print_Grid()
+            print self.simple_solver()
+            self.workingGrid.print_Grid()
+        return simple_iteration
+    
+    def __slv_find_firstchoice__(self):
+        min_len = 11
+        cellselect = 99
+        cellvalue = 99
+        for index,value in enumerate(self.workingGrid.Cells):
+            if len(self.workingGrid.Cells[index].check_cell())>1:
+                if min_len>len(self.workingGrid.Cells[index].check_cell()):
+                    cellselect = index
+                    cellvalue = value
+                min_len = min(len(self.workingGrid.Cells[index].check_cell()),min_len)
+            if len(self.workingGrid.Cells[index].check_cell())<1:
+                self.unsolvable = True
+        return {cellselect:cellvalue.check_cell()}
         
 
-         
-if __name__ == "__main__":
+    def __slv_iterate_truncation__(self):
+        groups = self.workingGrid.groups
+        for x in range(0,len(groups)):
+            if 0==self.__slv_truncate_group__(groups[x]):
+                return 0
+        return 1
     
+    def __slv_iterate_singlefind__(self):
+        groups = self.workingGrid.groups
+        for x in range(0,len(groups)):
+            if 0==self.__slv_find_single_num_in_group__(groups[x]):
+                return 0
+        return 1
+        
+    def __slv_truncate_group__(self, group):
+        for x in group:
+            if len(self.workingGrid.Cells[x].check_cell())==0:
+                return 0 #this case should not happen
+            
+            if len(self.workingGrid.Cells[x].check_cell())==1: #if value is known
+                val = self.workingGrid.Cells[x].check_cell()[0]
+                for y in group:
+                    if self.workingGrid.Cells[y].values[val]: #remove from remaining cells in group
+                        self.workingGrid.Cells[y].values[val]=False #remove from remaining cells in group
+
+                self.workingGrid.Cells[x].set_cell(val) #need to 'unremove'
+        return 1
+      
+    def __slv_find_single_num_in_group__(self,group):
+        number = {1:-1,2:-1,3:-1,4:-1,5:-1,6:-1,7:-1,8:-1,9:-1}
+        for x in group:           
+            for existing_number in self.workingGrid.Cells[x].check_cell():
+                if number.has_key(existing_number):
+                    if number[existing_number]!=-1: #there was a bug here index 0 did not count nor did False
+                        del number[existing_number]
+                if number.has_key(existing_number):
+                    number[existing_number]=x
+        for k,d in number.items():
+            if d==-1:
+                return 0 #return 0 because unsolvable
+        
+        for k,d in number.items():
+            self.workingGrid.Cells[d].set_cell(k)
+        return 1
+
+       
+if __name__ == "__main__":
+
     Grid = SudokuGrid()
     Grid2 = SudokuGrid()
     #Grid.__set_example0__()
     Grid.__set_example1__()
-    
-       
+
     Grid.print_Grid()
-    print ''
-    Grid2.print_Grid()
+
     
-    print ''
-    Grid2 = Grid
-    Grid2.print_Grid()
+    Solver = Sudoku_Solver()
+    Solver.load(Grid)
+    groups = Grid.__define_groups__()
+     
+   
+    iterations = Solver.solve()
+    
     '''
-    iteration = Grid.simple_solver()       
-    print "number of iterations: " + str(iteration)
-    Grid.print_Grid()
+    print 'No. Iterations: ' + str(iterations)
+    Solver.workingGrid.print_Grid()
     
-    for x in range(0,81):
-        if len(Grid.Cells[x].check_cell())!=1:
-            print Grid.Cells[x].check_cell()
-            
-    print Grid.__slv_find_firstchoice__()
+    print Solver.Branch.keys()[-1]
     '''
