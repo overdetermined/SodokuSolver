@@ -5,6 +5,7 @@ Created on 21.03.2014
 '''
 import random
 import copy
+import collections
 
 class SudokuCell:
     """Most Basic Sudoku Cell
@@ -200,23 +201,65 @@ class SudokuGrid:
         self.Cells[77].set_cell(6)
         self.Cells[78].set_cell(1)
 
+    def __set_example2__(self):
+        self.Cells[2].set_cell(7)
+        self.Cells[3].set_cell(3)        
+        self.Cells[4].set_cell(9)
+        self.Cells[8].set_cell(1)
 
+        self.Cells[12].set_cell(2)
+        #self.Cells[14].set_cell(1)        
+        self.Cells[16].set_cell(3)
+        self.Cells[17].set_cell(5)
+        
+        self.Cells[23].set_cell(5)
+        #self.Cells[24].set_cell(4)        
+        self.Cells[25].set_cell(8)
+          
+        self.Cells[27].set_cell(5)
+        self.Cells[31].set_cell(8)        
+        self.Cells[34].set_cell(1)
+        
+        self.Cells[36].set_cell(6)
+        self.Cells[39].set_cell(5)
+        self.Cells[40].set_cell(1)        
+        self.Cells[41].set_cell(2)
+        self.Cells[44].set_cell(7)
 
+        self.Cells[46].set_cell(1)
+        self.Cells[49].set_cell(3)        
+        self.Cells[53].set_cell(6)
+        
+        self.Cells[55].set_cell(8)
+        self.Cells[56].set_cell(5)        
+        self.Cells[57].set_cell(1)
+
+        self.Cells[63].set_cell(3)
+        self.Cells[64].set_cell(6)        
+        self.Cells[66].set_cell(4)
+        self.Cells[68].set_cell(7)        
+  
+        self.Cells[72].set_cell(1)
+        self.Cells[76].set_cell(5)        
+        self.Cells[77].set_cell(9)
+        self.Cells[78].set_cell(6)      
+        
 class Sudoku_Solver():
     '''This class is an iterative non-exhaustive search algorithm for the SudokuGrid'''
     def __init__(self):
-        self.Branch = {} #stores the Branch info
+        self.Branch = collections.OrderedDict() #{} #stores the Branch info
         self.inputGrid = SudokuGrid()
         self.workingGrid = SudokuGrid()
         self.solved = False
         self.unsolvable = False
+        self.solutionGrids = []
     
     def load(self,SudokuGrid):
         self.inputGrid = copy.deepcopy(SudokuGrid)
         self.workingGrid = copy.deepcopy(SudokuGrid)
         
     def simple_solver(self):
-        iteration = 0
+        iteration = 1
         laststate = SudokuGrid()
         while ((laststate == self.workingGrid)==False): #
             laststate = copy.deepcopy(self.workingGrid) #want to get rid of deepcopy...
@@ -233,20 +276,53 @@ class Sudoku_Solver():
             
         return iteration
     
+   
     def solve(self): #STILL WANT A BRANCH AND BOUND ALGORITHM!!!!! Not tonight
         iteration = 0
         simple_iteration = self.simple_solver()
         if (simple_iteration)==0:
-            self.unsolvable == True
+            self.unsolvable = True
+               
         if (self.workingGrid.check_gridsolved()==False): #start branching
             self.workingGrid.print_Grid()
-            self.Branch.update(self.__slv_find_firstchoice__())
-            self.workingGrid.Cells[Solver.Branch.keys()[-1]].set_cell(Solver.Branch.values()[-1][-1]) #select last item in Branch and set to grid
+            print len(Solver.Branch)
+            self.Branch.update(self.__slv_find_firstchoice__()) #seed
+            self.__slv_iterate_over_branch()
+        
+        self.solutionGrids.append(self.workingGrid)
+        self.workingGrid.print_Grid()
+
+
+    def __slv_iterate_over_branch(self):
+        i=0
+        while((self.unsolvable==False) and (not(self.workingGrid.check_gridsolved()))):  
+            i += 1
+            if len(Solver.Branch)==0:
+                self.unsolvable = True
+                return 0
+        
+            if len(Solver.Branch.values()[-1])==0: #if last item is empty pop previous
+                self.workingGrid.Cells[Solver.Branch.keys()[-1]].reset_cell() #reset in working Grid
+                Solver.Branch.pop(-1) 
+                Solver.Branch.values()[-1].pop(-1) #remove the previous tested value
+
+            self.workingGrid.Cells[Solver.Branch.keys()[-1]].set_cell(Solver.Branch.values()[-1][-1])
+            if (self.simple_solver()==0):
+                Solver.Branch.values()[-1].pop(-1) #remove last entry
+            else:   
+                if(not(self.workingGrid.check_gridsolved())):
+                    self.Branch.update(self.__slv_find_firstchoice__())
+                
+            print self.Branch
             self.workingGrid.print_Grid()
-            print self.simple_solver()
-            self.workingGrid.print_Grid()
-        return simple_iteration
-    
+            
+            if i>1000:
+                print "too much!"
+                break
+                
+            
+                    
+            
     def __slv_find_firstchoice__(self):
         min_len = 11
         cellselect = 99
@@ -313,7 +389,8 @@ if __name__ == "__main__":
     Grid = SudokuGrid()
     Grid2 = SudokuGrid()
     #Grid.__set_example0__()
-    Grid.__set_example1__()
+    #Grid.__set_example1__()
+    Grid.__set_example2__()
 
     Grid.print_Grid()
 
