@@ -69,6 +69,12 @@ class SudokuGrid:
                 return False
         return True
    
+    def set_GridfromList(self, list):
+        if len(list):
+            for i in range (0,81):
+                if list[i]!=0:
+                    self.Cells[i].set_cell(list[i])
+   
     def __define_groups__(self):
         """we need to know how the grid is formed"""
         groups=[]
@@ -109,6 +115,7 @@ class SudokuGrid:
             if len(x.check_cell())!=1:
                 rand = random.randint(1,9)
                 x.set_cell(rand)
+                
 
     def __set_example0__(self):
         self.Cells[1].set_cell(7)
@@ -285,8 +292,9 @@ class Sudoku_Solver():
                
         if (self.workingGrid.check_gridsolved()==False): #start branching
             self.workingGrid.print_Grid()
-            print len(Solver.Branch)
+            
             self.Branch.update(self.__slv_find_firstchoice__()) #seed
+            print len(self.Branch)
             self.__slv_iterate_over_branch()
         
         self.solutionGrids.append(self.workingGrid)
@@ -295,20 +303,27 @@ class Sudoku_Solver():
 
     def __slv_iterate_over_branch(self):
         i=0
+        BranchGrids = []
         while((self.unsolvable==False) and (not(self.workingGrid.check_gridsolved()))):  
             i += 1
             if len(Solver.Branch)==0:
                 self.unsolvable = True
                 return 0
-        
+            
             if len(Solver.Branch.values()[-1])==0: #if last item is empty pop previous
                 self.workingGrid.Cells[Solver.Branch.keys()[-1]].reset_cell() #reset in working Grid
-                Solver.Branch.pop(-1) 
+                Solver.Branch.popitem(-1)
                 Solver.Branch.values()[-1].pop(-1) #remove the previous tested value
-
+                BranchGrids.pop(-1) #remove unnecessary solutiongrid
+                self.workingGrid = copy.deepcopy(BranchGrids[-1])
+            
             self.workingGrid.Cells[Solver.Branch.keys()[-1]].set_cell(Solver.Branch.values()[-1][-1])
+            
+            BranchGrids.append(copy.deepcopy(self.workingGrid))
             if (self.simple_solver()==0):
                 Solver.Branch.values()[-1].pop(-1) #remove last entry
+                self.workingGrid = copy.deepcopy(BranchGrids[-1])
+                BranchGrids.pop(-1)
             else:   
                 if(not(self.workingGrid.check_gridsolved())):
                     self.Branch.update(self.__slv_find_firstchoice__())
@@ -390,8 +405,12 @@ if __name__ == "__main__":
     Grid2 = SudokuGrid()
     #Grid.__set_example0__()
     #Grid.__set_example1__()
-    Grid.__set_example2__()
-
+    #Grid.__set_example2__()
+    Grid.print_Grid()
+    #Grid.set_GridfromList([9,0,6,0,0,0,8,3,4,5,0,0,8,0,4,0,7,0,4,0,0,0,3,2,0,5,0,3,4,2,0,0,0,0,9,0,8,0,1,0,0,0,6,0,3,0,9,0,0,0,0,1,4,8,0,6,0,4,2,0,0,0,7,0,3,0,5,0,1,0,0,2,2,8,4,0,0,0,5,0,9])
+    #Grid.set_GridfromList([0,0,0,3,6,0,8,0,0,0,0,1,9,0,0,0,0,4,0,2,4,0,0,0,7,0,0,1,5,0,0,0,0,2,0,0,9,0,0,1,0,2,0,0,3,0,0,7,0,0,0,0,1,9,0,0,5,0,0,0,6,4,0,4,0,0,0,0,9,1,0,0,0,0,8,0,4,5,0,0,0])
+    #Grid.set_GridfromList([0,0,0,0,7,9,0,0,0,7,0,4,0,1,0,0,0,0,0,6,0,2,0,0,0,0,9,4,0,3,0,0,7,5,0,0,2,0,0,0,0,0,0,0,4,0,0,6,4,0,0,8,0,3,6,0,0,0,0,3,0,9,0,0,0,0,0,6,0,4,0,2,0,0,0,7,9,0,0,0,0])
+    Grid.set_GridfromList([8,0,0,0,0,0,0,0,0,0,0,3,6,0,0,0,0,0,0,7,0,0,9,0,2,0,0,0,5,0,0,0,7,0,0,0,0,0,0,0,4,5,7,0,0,0,0,0,1,0,0,0,3,0,0,0,1,0,0,0,0,6,8,0,0,8,5,0,0,0,1,0,0,9,0,0,0,0,4,0,0])
     Grid.print_Grid()
 
     
@@ -399,8 +418,8 @@ if __name__ == "__main__":
     Solver.load(Grid)
     groups = Grid.__define_groups__()
      
-   
-    iterations = Solver.solve()
+    
+    Solver.solve()
     
     '''
     print 'No. Iterations: ' + str(iterations)
