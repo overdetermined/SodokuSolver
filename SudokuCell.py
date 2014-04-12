@@ -13,17 +13,14 @@ class SudokuCell:
     -Can return the possible cases
     """
     def __init__(self):
-        self.values = {1: True,2:True,3:True,4:True,5:True,6:True,7:True,8:True,9:True}
+        self.values = {n:True for n in range(1,10)}
     
     def __eq__(self, other):
         return self.values == other.values
         
     def check_cell(self):
         """return all values still possible"""
-        out = []
-        for k,d in self.values.items():
-            if d==True:
-                out.append(k) 
+        out = [k for k,d in self.values.items() if d]
         return out
     
     def set_cell(self, val):
@@ -40,7 +37,7 @@ class SudokuCell:
 class SudokuGrid:
     def __init__(self):
         self.Cells = []
-        for x in range(0,81):
+        for _ in range(81):
             Cell = SudokuCell()
             self.Cells.append(Cell)
         self.groups = self.__define_groups__()
@@ -53,21 +50,18 @@ class SudokuGrid:
         values=self.__str_fill__()
         print '-------------------'
         for x in range (0,3):
-            print '|'+values[x*9] +' '+ values[x*9+1] +' ' + values [x*9+2] + '|'+values[x*9+3] +' '+ values[x*9+4] +' ' + values [x*9+5] + '|'+values[x*9+6] +' '+ values[x*9+7] +' ' + values [x*9+8] + '|'
+            print '|'+ ' '.join(values[x*9+i] for i in range(3)) + '|' +' '.join(values[x*9+i] for i in range(4,7)) +'|' +' '.join(values[x*9+i] for i in range(6,9)) +'|'
         print '*-----*-----*-----*'
         for x in range (3,6):
-            print '|'+values[x*9] +' '+ values[x*9+1] +' ' + values [x*9+2] + '|'+values[x*9+3] +' '+ values[x*9+4] +' ' + values [x*9+5] + '|'+values[x*9+6] +' '+ values[x*9+7] +' ' + values [x*9+8] + '|'
+            print '|'+ ' '.join(values[x*9+i] for i in range(3)) + '|' +' '.join(values[x*9+i] for i in range(4,7)) +'|' +' '.join(values[x*9+i] for i in range(6,9)) +'|'
         print '*-----*-----*-----*'
         for x in range (6,9):
-            print '|'+values[x*9] +' '+ values[x*9+1] +' ' + values [x*9+2] + '|'+values[x*9+3] +' '+ values[x*9+4] +' ' + values [x*9+5] + '|'+values[x*9+6] +' '+ values[x*9+7] +' ' + values [x*9+8] + '|'
+            print '|'+ ' '.join(values[x*9+i] for i in range(3)) + '|' +' '.join(values[x*9+i] for i in range(4,7)) +'|' +' '.join(values[x*9+i] for i in range(6,9)) +'|'
         print '-------------------'
         
         
     def check_gridsolved(self):
-        for x in self.Cells:
-            if len(x.check_cell())!=1:
-                return False
-        return True
+        return all(len(x.check_cell()) == 1 for x in self.Cells)
    
     def set_GridfromList(self, list):
         if len(list):
@@ -80,33 +74,31 @@ class SudokuGrid:
         groups=[]
         #rows
         for x in range(0,9):
-            groups.append([x*9,x*9+1,x*9+2,x*9+3,x*9+4,x*9+5,x*9+6,x*9+7,x*9+8])
+            groups.append([x*9+i for i in range(9)])
             
         #collumns
         for x in range(0,9):
-            groups.append([x,x+9,x+18,x+27,x+36,x+45,x+54,x+63,x+72])
+            groups.append([x+9*i for i in range(9)])
             
         #squares 1
         for x in range(0,3):
-            groups.append([x*3,x*3+1,x*3+2,x*3+9,x*3+10,x*3+11,x*3+18,x*3+19,x*3+20])
+            groups.append([x*3+i*9+j for i in range(3) for j in range(3)])
         #squares 2
         for x in range(9,12):
-            groups.append([x*3,x*3+1,x*3+2,x*3+9,x*3+10,x*3+11,x*3+18,x*3+19,x*3+20])
+            groups.append([x*3+i*9+j for i in range(3) for j in range(3)])
         #squares 3
         for x in range(18,21):
-            groups.append([x*3,x*3+1,x*3+2,x*3+9,x*3+10,x*3+11,x*3+18,x*3+19,x*3+20])            
+            groups.append([x*3+i*9+j for i in range(3) for j in range(3)])           
               
         return groups
         
     def __str_fill__(self):
         """get Row for Print"""
         out =[]
-        i=0
-        for x in self.Cells:
+        for i,x in enumerate(self.Cells):
             out.append('*')
             if len(x.check_cell())==1:
                 out[i]=str(x.check_cell()[0])
-            i+=1
         return out
     
     def __fill_empty__(self):
@@ -310,7 +302,7 @@ class Sudoku_Solver():
                 self.unsolvable = True
                 return 0
             
-            if len(Solver.Branch.values()[-1])==0: #if last item is empty pop previous
+            while len(Solver.Branch.values()[-1])==0: #if last item is empty pop previous
                 self.workingGrid.Cells[Solver.Branch.keys()[-1]].reset_cell() #reset in working Grid
                 Solver.Branch.popitem(-1)
                 Solver.Branch.values()[-1].pop(-1) #remove the previous tested value
@@ -400,7 +392,7 @@ class Sudoku_Solver():
 
        
 if __name__ == "__main__":
-
+    
     Grid = SudokuGrid()
     Grid2 = SudokuGrid()
     #Grid.__set_example0__()
