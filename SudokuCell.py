@@ -7,7 +7,7 @@ import random
 import copy
 import collections
 
-class SudokuCell:
+class SudokuCell(object):
     """Most Basic Sudoku Cell
     -Contains 9 Possible values, initialized at true
     -Can return the possible cases
@@ -34,7 +34,7 @@ class SudokuCell:
         self.values = {1: True,2:True,3:True,4:True,5:True,6:True,7:True,8:True,9:True}
 
 
-class SudokuGrid:
+class SudokuGrid(object):
     def __init__(self):
         self.Cells = []
         for _ in range(81):
@@ -243,7 +243,7 @@ class SudokuGrid:
         self.Cells[77].set_cell(9)
         self.Cells[78].set_cell(6)      
         
-class Sudoku_Solver():
+class Sudoku_Solver(object):
     '''This class is an iterative non-exhaustive search algorithm for the SudokuGrid'''
     def __init__(self):
         self.Branch = collections.OrderedDict() #{} #stores the Branch info
@@ -320,8 +320,8 @@ class Sudoku_Solver():
                 if(not(self.workingGrid.check_gridsolved())):
                     self.Branch.update(self.__slv_find_firstchoice__())
                 
-            print self.Branch
-            self.workingGrid.print_Grid()
+            #print self.Branch
+            #self.workingGrid.print_Grid()
             
             if i>1000:
                 print "too much!"
